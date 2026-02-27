@@ -1,0 +1,15 @@
+[package]
+name = "rusty-lsm"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = "2"
+memmap2 = "0.9"
+bytes = "1"
+crossbeam-skiplist = "0.1"
+parking_lot = "0.12"
+crc32fast = "1"
+
+[dev-dependencies]
+tempfile = "3"
