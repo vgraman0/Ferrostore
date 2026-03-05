@@ -69,7 +69,7 @@ Implement the WAL. Close the program, restart it, and prove the MemTable is rebu
 | File | Struct / Trait | Key Methods |
 |------|---------------|-------------|
 | `src/wal.rs` | `Wal` | `create`, `open`, `append`, `recover`, `sync` |
-| `src/db.rs` | `DB` | `open` (replay WAL → MemTable), `put`, `delete` (WAL + MemTable writes) |
+| `src/db.rs`  | `DB`  | `open` (replay WAL → MemTable), `put`, `delete` (WAL + MemTable writes) |
 
 ### Milestone 3: SSTable Generation
 Implement the logic to "Freeze" a MemTable and write it to a sorted `.sst` file with a basic index.

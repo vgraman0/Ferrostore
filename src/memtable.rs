@@ -4,6 +4,7 @@ pub trait MemTable {
     fn put(&mut self, key: Vec<u8>, value: Vec<u8>);
     fn get(&self, key: &[u8]) -> Option<&[u8]>;
     fn delete(&mut self, key: &[u8]);
+    fn scan(&self, start: &[u8], end: &[u8]) -> Vec<(&[u8], &[u8])>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
 }
@@ -118,6 +119,8 @@ impl MemTable for SkipListMemTable {
             self.len -= 1;
         }
     }
+
+    fn scan(&self, start: &[u8], end: &[u8]) -> Vec<(&[u8], &[u8])> {}
 
     fn len(&self) -> usize {
         self.len
