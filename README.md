@@ -1,99 +1,76 @@
-# RustyLSM: LSM Key-Value Store in Rust
+# RustyLSM
 
-## 1. Project Overview
-The goal is to implement a persistent, file-based Key-Value (KV) store using a **Log-Structured Merge-tree (LSM)** architecture. The engine must support atomic writes, point lookups, and range scans while ensuring data integrity across process restarts.
+A persistent key-value storage engine built on a **Log-Structured Merge-tree (LSM)** architecture, written in Rust.
 
-## 2. Functional Requirements
-
-Your implementation must provide a library API with the following signature:
-
-### Core API
-
-* **`open(path: PathBuf) -> Result<DB>`**: Opens a database at the specified directory. If it doesn't exist, initialize it.
-* **`put(key: &[u8], value: &[u8]) -> Result<()>`**: Inserts or updates a key.
-* **`get(key: &[u8]) -> Result<Option<Vec<u8>>>`**: Retrieves the latest value for a key.
-* **`delete(key: &[u8]) -> Result<()>`**: Deletes a key (by inserting a "tombstone" record).
-* **`scan(start: &[u8], end: &[u8]) -> Iterator`**: Returns an iterator over all keys in the given range (inclusive).
-
-### Persistence & Durability
-
-* **WAL (Write-Ahead Log):** Every `put` must be appended to a WAL file and `fsync`'d before the operation returns success.
-* **MemTable Flush:** When the in-memory MemTable exceeds $4$ MB, it must be flushed to disk as a new **SSTable (Sorted String Table)**.
-* **Crash Recovery:** Upon calling `open()`, the engine must detect any existing WAL files, replay the operations into the MemTable, and ensure no data was lost from the last successful write.
+LSM trees are the backbone of modern storage systems like LevelDB, RocksDB, and Cassandra. They're optimized for **write-heavy workloads** — every write is sequential (no random I/O), giving you throughput that spinning disks and SSDs both love.
 
 ---
 
-## 3. Storage Format Requirements (The Disk)
+## How LSM Trees Work
 
-To ensure your database is "real" and interoperable, you must follow this file format:
+<p align="center">
+  <img src="/assets/2026-03-12-23-26-28.png" width="600">
+</p>
 
-### SSTable Structure (Level 0)
+### Write Path
+Every write first appends to the **Write-Ahead Log** (WAL) for durability, then inserts into the **MemTable** — an in-memory sorted structure. When the memtable hits a size threshold, it's flushed to disk as an immutable **SSTable** (Sorted String Table).
 
-Each `.sst` file must be immutable and consist of:
+### Read Path
+Reads check the **MemTable** first (most recent data), then walk through SSTables from newest to oldest. **Bloom filters** attached to each SSTable let the engine skip files that definitely don't contain the key — avoiding unnecessary disk reads.
 
-1. **Data Blocks:** $4$ KB blocks containing sorted `(KeySize, Key, ValueSize, Value)` entries.
-2. **Index Block:** A footer containing the last key of each Data Block and its byte offset within the file (for binary search).
-3. **Bloom Filter:** A bitset stored in the footer to identify if a key is definitely *not* in this file.
-
-### Manifest File
-
-A single `MANIFEST` file must track the "Active Set" of SSTables.
-
-* When a new SSTable is created, the Manifest is updated.
-* The Manifest update must be **atomic** (e.g., write to a temp file and `rename` over the old one).
+### Compaction
+Over time, SSTables accumulate. A background compaction process merges overlapping tables, discards old versions and tombstones, and produces fewer, larger files. This keeps read amplification in check.
 
 ---
 
-## 4. Technical Constraints (The "Rust" Way)
+## Features Implemented
 
-* **Zero-Copy Reading:** Use the `memmap2` crate to memory-map SSTables for fast reads.
-* **Concurrency:** The `DB` handle must be thread-safe (`Send + Sync`). Use a `RwLock` or `Mutex` to protect the MemTable, but ensure the WAL write happens outside the lock to minimize contention.
-* **Error Handling:** Define a custom `Error` enum using `thiserror` (e.g., `IOError`, `CorruptionError`, `SerializationError`).
+### SkipList MemTable
+In-memory sorted store backed by a custom skip list. Supports `put`, `get`, `delete`, and `scan` — all in O(log n). Tombstone-based deletes ensure correctness during scans and future SSTable flushes.
+
+### Write-Ahead Log (WAL)
+Binary-serialized, append-only log. Each entry is tagged (`put` or `delete`) with length-prefixed keys and values. On startup, the WAL is replayed into the memtable — no data is lost between restarts.
+
+### Bloom Filter
+Probabilistic key lookup with a configurable false-positive rate. Uses a double-hashing technique (splitting a single 64-bit hash into two 32-bit halves) to simulate multiple hash functions. Serializable to bytes for embedding in SSTables.
+
+### Database API
+Clean top-level interface tying it all together:
+
+```rust
+let mut db = DB::open("my_db")?;
+
+db.put(b"name", b"RustyLSM")?;
+db.get(b"name")?;              // Some(b"RustyLSM")
+db.delete(b"name")?;
+db.scan(b"a", b"z")?;          // Vec of (key, value) pairs
+```
+
+Every mutation flows through the WAL before touching the memtable, and recovery is automatic on `open`.
 
 ---
 
-## 5. Implementation Milestones
+## Planned / In Progress
 
-### Milestone 1: The In-Memory Store
-Implement a `SkipList` or `BTreeMap` MemTable with the `put/get` API. No persistence yet.
+- **SSTable builder & reader** — sorted string tables with 4 KB block-based layout, index blocks, and embedded bloom filters
+- **Manifest file** — atomic tracking of the active set of SSTables
+- **Background compaction** — merge overlapping SSTables to reduce read amplification
 
-| File | Struct / Trait | Key Methods |
-|------|---------------|-------------|
-| `src/memtable.rs` | `MemTable` (trait) | `put`, `get`, `delete`, `len`, `is_empty` |
-| `src/memtable.rs` | `SkipListMemTable` | `new`, `find_update_path`, `random_level` |
-| `src/error.rs` | `Error` enum | custom error types via `thiserror` |
+---
 
-### Milestone 2: The WAL & Recovery
-Implement the WAL. Close the program, restart it, and prove the MemTable is rebuilt from the log.
+## Demo
 
-| File | Struct / Trait | Key Methods |
-|------|---------------|-------------|
-| `src/wal.rs` | `Wal` | `create`, `open`, `append`, `recover`, `sync` |
-| `src/db.rs`  | `DB`  | `open` (replay WAL → MemTable), `put`, `delete` (WAL + MemTable writes) |
+<!-- TODO: Add demo video for basic operations -->
 
-### Milestone 3: SSTable Generation
-Implement the logic to "Freeze" a MemTable and write it to a sorted `.sst` file with a basic index.
+<!-- TODO: Add demo video for crash recovery -->
 
-| File | Struct / Trait | Key Methods |
-|------|---------------|-------------|
-| `src/sstable/builder.rs` | `SSTableBuilder` | `new`, `add`, `finish` |
-| `src/bloom.rs` | `BloomFilter` | `new`, `insert`, `may_contain`, `encode`, `decode` |
-| `src/manifest.rs` | `Manifest` | `create`, `load`, `add_sstable`, `active_sstables` |
-| `src/db.rs` | `DB` | flush logic (freeze MemTable → SSTableBuilder → new WAL) |
+---
 
-### Milestone 4: Point Lookups & Range Scans
-Update `get()` to check the MemTable first, then the most recent SSTables in order.
+## Getting Started
 
-| File | Struct / Trait | Key Methods |
-|------|---------------|-------------|
-| `src/sstable/reader.rs` | `SSTableReader` | `open`, `get`, `scan`, `may_contain` |
-| `src/db.rs` | `DB` | `get` (MemTable → SSTables), `scan` (merge across all sources) |
+```bash
+cargo build
+cargo test
+```
 
-### Milestone 5 (The "A" Grade): Compaction
-Implement a background thread that merges two Level-0 SSTables into a single Level-1 SSTable, removing old versions of keys.
-
-| File | Struct / Trait | Key Methods |
-|------|---------------|-------------|
-| `src/compaction.rs` | `CompactionManager` | `new`, `start`, `stop` |
-| `src/manifest.rs` | `Manifest` | `remove_sstable` (cleanup after merge) |
-| `src/db.rs` | `DB` | integrate compaction lifecycle (start on open, stop on drop) |
+Requires Rust 2021 edition.
