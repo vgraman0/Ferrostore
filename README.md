@@ -1,4 +1,4 @@
-# Sinter
+# Ferrostore 
 
 A persistent, write-optimized key-value storage engine in Rust, built from first principles on LSM-tree architecture.
 
@@ -8,14 +8,14 @@ Skip list memtable · write-ahead log · bloom-filtered SSTables · background c
 
 ## Usage
 
-\```rust
+```rust
 let mut db = DB::open("my_db")?;
 
-db.put(b"name", b"Sinter")?;
-db.get(b"name")?;              // Some(b"Sinter")
+db.put(b"name", b"Ferrostore")?;
+db.get(b"name")?;              // Some(b"Ferrostore")
 db.delete(b"name")?;
 db.scan(b"a", b"z")?;          // Vec of (key, value) pairs
-\```
+```
 
 
 ---
@@ -31,10 +31,10 @@ db.scan(b"a", b"z")?;          // Vec of (key, value) pairs
 
 ## Building
 
-\```bash
+```bash
 cargo build
 cargo test
-\```
+```
 
 Requires Rust 2021 edition.
 
