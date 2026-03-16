@@ -22,3 +22,6 @@ target
 
 # Environment variables
 .env
+
+# Task Master
+.taskmaster/
