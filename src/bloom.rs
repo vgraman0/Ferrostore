@@ -43,7 +43,7 @@ impl BloomFilter {
     pub fn insert(&mut self, key: &[u8]) {
         for pos in self.hash_positions(key) {
             self.bits[pos / 8] |= 1 << (pos % 8);
-        }
+        } 
     }
 
     pub fn may_contain(&self, key: &[u8]) -> bool {
