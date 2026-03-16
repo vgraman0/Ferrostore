@@ -17,6 +17,14 @@ db.delete(b"name")?;
 db.scan(b"a", b"z")?;          // Vec of (key, value) pairs
 ```
 
+### Building
+
+```bash
+cargo build
+cargo test
+```
+
+Requires Rust 2021 edition.
 
 ---
 
@@ -55,17 +63,6 @@ db.scan(b"a", b"z")?;          // Vec of (key, value) pairs
 ### Quality
 - [ ] Comprehensive test suite (property-based, crash consistency, >90% coverage)
 - [ ] API documentation and performance tuning guide
----
-
-## Building
-
-```bash
-cargo build
-cargo test
-```
-
-Requires Rust 2021 edition.
-
 ---
 
 ## Design
