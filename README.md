@@ -33,7 +33,7 @@ Requires Rust 2021 edition.
 ### Core Engine
 - [x] Skip list memtable with write-ahead log
 - [x] SSTable builder with block-based layout and embedded bloom filters
-- [ ] SSTable reader with point lookups and range scans
+- [x] SSTable reader with mmap-based point lookups and range scans
 - [ ] Integrate SSTables into DB read/write path (memtable flushing, read ordering)
 - [ ] Manifest file for atomic SSTable tracking
 - [ ] Leveled compaction (L0 overlapping, L1+ non-overlapping, 10x size targets)
