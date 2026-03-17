@@ -3,6 +3,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 
 use crate::error::{self, Result};
+use crate::{Entries, Entry};
 
 pub struct Wal {
     file: File,
@@ -34,8 +35,7 @@ impl Wal {
         Ok(())
     }
 
-    #[allow(clippy::type_complexity)]
-    pub fn recover(path: &Path) -> Result<Vec<(Vec<u8>, Option<Vec<u8>>)>> {
+    pub fn recover(path: &Path) -> Result<Entries> {
         let mut entries = Vec::new();
         let mut file = File::open(path)?;
 
@@ -52,7 +52,7 @@ impl Wal {
         Ok(entries)
     }
 
-    fn read_entry(file: &mut File) -> Result<(Vec<u8>, Option<Vec<u8>>)> {
+    fn read_entry(file: &mut File) -> Result<Entry> {
         let mut tag_buf = [0u8; 1];
         file.read_exact(&mut tag_buf)?;
         let tag = tag_buf[0] == 1;

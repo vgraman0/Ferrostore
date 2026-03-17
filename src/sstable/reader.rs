@@ -6,13 +6,12 @@ use crate::{
     bloom::BloomFilter,
     error::{Error, Result},
     sstable::SSTABLE_MAGIC,
+    Entries, IndexEntries, ScanResult,
 };
-
-type BlockEntries = Vec<(Vec<u8>, Option<Vec<u8>>)>;
 
 pub struct SSTableReader {
     mmap: Mmap,
-    index_entries: Vec<(Vec<u8>, u64)>,
+    index_entries: IndexEntries,
     bloom_filter: BloomFilter,
     index_block_offset: usize,
 }
@@ -80,7 +79,7 @@ impl SSTableReader {
         Ok(None)
     }
 
-    pub fn scan(&self, start: &[u8], end: &[u8]) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
+    pub fn scan(&self, start: &[u8], end: &[u8]) -> Result<ScanResult> {
         let mut entries = Vec::new();
         let idx = self
             .index_entries
@@ -123,7 +122,7 @@ impl SSTableReader {
         &self,
         block_start_offset: usize,
         block_end_offset: usize,
-    ) -> Result<BlockEntries> {
+    ) -> Result<Entries> {
         let mut entries = Vec::new();
         let mut current_offset = block_start_offset;
 

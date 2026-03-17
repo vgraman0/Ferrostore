@@ -4,6 +4,7 @@ use crate::{
     error::Result,
     memtable::{MemTable, SkipListMemTable},
     wal::Wal,
+    ScanResult,
 };
 
 const MAX_LEVEL: usize = 16;
@@ -50,7 +51,7 @@ impl DB {
         Ok(())
     }
 
-    pub fn scan(&self, start: &[u8], end: &[u8]) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
+    pub fn scan(&self, start: &[u8], end: &[u8]) -> Result<ScanResult> {
         Ok(self
             .memtable
             .scan(start, end)

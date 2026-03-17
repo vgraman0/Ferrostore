@@ -4,11 +4,12 @@ use std::{fs::File, path::Path};
 use super::{BLOCK_SIZE, SSTABLE_MAGIC};
 use crate::bloom::BloomFilter;
 use crate::error::Result;
+use crate::IndexEntries;
 
 pub struct SSTableBuilder {
     file: File,
     current_block: Vec<u8>,
-    index_entries: Vec<(Vec<u8>, u64)>,
+    index_entries: IndexEntries,
     bloom: BloomFilter,
     current_offset: u64,
     entry_count: usize,
