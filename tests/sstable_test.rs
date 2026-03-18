@@ -6,7 +6,7 @@ fn build_sstable(
     entries: &[(&[u8], Option<&[u8]>)],
 ) -> error::Result<SSTableReader> {
     let path = dir.join("test.sst");
-    let mut builder = SSTableBuilder::new(&path, entries.len())?;
+    let mut builder = SSTableBuilder::new(&path, entries.len(), 4096, 0.01)?;
     for (key, value) in entries {
         builder.add(key, *value)?;
     }
@@ -107,7 +107,7 @@ fn bloom_filter_rejects_missing_keys() -> error::Result<()> {
     let dir = tempfile::tempdir()?;
     let path = dir.path().join("test.sst");
     let count = 100;
-    let mut builder = SSTableBuilder::new(&path, count)?;
+    let mut builder = SSTableBuilder::new(&path, count, 4096, 0.01)?;
     for i in 0..count {
         let key = format!("key{i:04}");
         let val = format!("val{i:04}");

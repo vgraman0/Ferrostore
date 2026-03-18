@@ -2,7 +2,7 @@ use rusty_lsm::memtable::{MemTable, SkipListMemTable};
 
 #[test]
 fn test_example() {
-    let table = SkipListMemTable::new(4);
+    let table = SkipListMemTable::new(4, 0.5);
 
     assert!(table.is_empty());
     assert_eq!(table.len(), 0);
@@ -10,7 +10,7 @@ fn test_example() {
 
 #[test]
 fn put_and_get_single_key() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
 
     table.put(b"hello".to_vec(), b"world".to_vec());
 
@@ -20,7 +20,7 @@ fn put_and_get_single_key() {
 
 #[test]
 fn put_overwrite_existing_key() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"key".to_vec(), b"value1".to_vec());
 
     table.put(b"key".to_vec(), b"value2".to_vec());
@@ -31,14 +31,14 @@ fn put_overwrite_existing_key() {
 
 #[test]
 fn get_nonexistent_key_returns_none() {
-    let table = SkipListMemTable::new(4);
+    let table = SkipListMemTable::new(4, 0.5);
 
     assert_eq!(table.get(b"missing"), None);
 }
 
 #[test]
 fn delete_existing_key() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"key".to_vec(), b"value".to_vec());
 
     table.delete(b"key");
@@ -49,7 +49,7 @@ fn delete_existing_key() {
 
 #[test]
 fn delete_nonexistent_key_does_nothing() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
 
     table.delete(b"missing");
 
@@ -58,7 +58,7 @@ fn delete_nonexistent_key_does_nothing() {
 
 #[test]
 fn delete_already_deleted_key() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"key".to_vec(), b"value".to_vec());
     table.delete(b"key");
 
@@ -69,7 +69,7 @@ fn delete_already_deleted_key() {
 
 #[test]
 fn put_after_delete_reinserts() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"key".to_vec(), b"value1".to_vec());
     table.delete(b"key");
 
@@ -81,7 +81,7 @@ fn put_after_delete_reinserts() {
 
 #[test]
 fn multiple_keys_all_retrievable() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
 
     table.put(b"cherry".to_vec(), b"3".to_vec());
     table.put(b"apple".to_vec(), b"1".to_vec());
@@ -95,7 +95,7 @@ fn multiple_keys_all_retrievable() {
 
 #[test]
 fn len_tracks_inserts_and_deletes() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     assert_eq!(table.len(), 0);
 
     table.put(b"a".to_vec(), b"1".to_vec());
@@ -110,7 +110,7 @@ fn len_tracks_inserts_and_deletes() {
 
 #[test]
 fn is_empty_reflects_state() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     assert!(table.is_empty());
 
     table.put(b"a".to_vec(), b"1".to_vec());
@@ -122,7 +122,7 @@ fn is_empty_reflects_state() {
 
 #[test]
 fn scan_returns_keys_in_range() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"a".to_vec(), b"1".to_vec());
     table.put(b"b".to_vec(), b"2".to_vec());
     table.put(b"c".to_vec(), b"3".to_vec());
@@ -139,7 +139,7 @@ fn scan_returns_keys_in_range() {
 
 #[test]
 fn scan_full_range() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"a".to_vec(), b"1".to_vec());
     table.put(b"b".to_vec(), b"2".to_vec());
     table.put(b"c".to_vec(), b"3".to_vec());
@@ -151,7 +151,7 @@ fn scan_full_range() {
 
 #[test]
 fn scan_single_key() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"a".to_vec(), b"1".to_vec());
     table.put(b"b".to_vec(), b"2".to_vec());
     table.put(b"c".to_vec(), b"3".to_vec());
@@ -164,7 +164,7 @@ fn scan_single_key() {
 
 #[test]
 fn scan_empty_table() {
-    let table = SkipListMemTable::new(4);
+    let table = SkipListMemTable::new(4, 0.5);
 
     let result = table.scan(b"a", b"z");
 
@@ -173,7 +173,7 @@ fn scan_empty_table() {
 
 #[test]
 fn scan_no_keys_in_range() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"a".to_vec(), b"1".to_vec());
     table.put(b"z".to_vec(), b"2".to_vec());
 
@@ -184,7 +184,7 @@ fn scan_no_keys_in_range() {
 
 #[test]
 fn scan_skips_tombstones() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"a".to_vec(), b"1".to_vec());
     table.put(b"b".to_vec(), b"2".to_vec());
     table.put(b"c".to_vec(), b"3".to_vec());
@@ -199,7 +199,7 @@ fn scan_skips_tombstones() {
 
 #[test]
 fn scan_range_beyond_existing_keys() {
-    let mut table = SkipListMemTable::new(4);
+    let mut table = SkipListMemTable::new(4, 0.5);
     table.put(b"b".to_vec(), b"1".to_vec());
     table.put(b"c".to_vec(), b"2".to_vec());
 

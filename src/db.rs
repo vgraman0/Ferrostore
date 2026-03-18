@@ -1,24 +1,28 @@
 use std::path::PathBuf;
 
 use crate::{
+    config::DbConfig,
     error::Result,
     memtable::{MemTable, SkipListMemTable},
     wal::Wal,
     ScanResult,
 };
 
-const MAX_LEVEL: usize = 16;
-
 pub struct DB {
-    // TODO: add fields (e.g. MemTable, WAL, SSTable readers, Manifest, path)
     memtable: SkipListMemTable,
     wal: Wal,
+    config: DbConfig,
 }
 
 impl DB {
     pub fn open(path: impl Into<PathBuf>) -> Result<Self> {
+        Self::open_with_config(path, DbConfig::default())
+    }
+
+    pub fn open_with_config(path: impl Into<PathBuf>, config: DbConfig) -> Result<Self> {
         let path = path.into();
-        let mut memtable = SkipListMemTable::new(MAX_LEVEL);
+        let mut memtable =
+            SkipListMemTable::new(config.skip_list_max_level, config.skip_list_probability);
 
         if path.exists() {
             for (key, value) in Wal::recover(path.as_path())? {
@@ -30,7 +34,11 @@ impl DB {
         }
 
         let wal = Wal::open(path.as_path())?;
-        Ok(Self { memtable, wal })
+        Ok(Self {
+            memtable,
+            wal,
+            config,
+        })
     }
 
     pub fn put(&mut self, key: &[u8], value: &[u8]) -> Result<()> {

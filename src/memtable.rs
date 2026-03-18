@@ -13,6 +13,7 @@ pub struct SkipListMemTable {
     nodes: Vec<Node>,
     head: usize,
     max_level: usize,
+    probability: f64,
     current_level: usize,
     len: usize,
 }
@@ -24,7 +25,7 @@ struct Node {
 }
 
 impl SkipListMemTable {
-    pub fn new(max_level: usize) -> Self {
+    pub fn new(max_level: usize, probability: f64) -> Self {
         let forward = vec![NIL; max_level];
         let head = Node {
             key: Vec::new(),
@@ -37,6 +38,7 @@ impl SkipListMemTable {
             nodes,
             head: 0,
             max_level,
+            probability,
             current_level: 1,
             len: 0,
         }
@@ -44,7 +46,7 @@ impl SkipListMemTable {
 
     fn random_level(&self) -> usize {
         let mut level = 1;
-        while rand::random::<f64>() < 0.5 && level < self.max_level {
+        while rand::random::<f64>() < self.probability && level < self.max_level {
             level += 1;
         }
         level

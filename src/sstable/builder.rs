@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::{fs::File, path::Path};
 
-use super::{BLOCK_SIZE, SSTABLE_MAGIC};
+use super::SSTABLE_MAGIC;
 use crate::bloom::BloomFilter;
 use crate::error::Result;
 use crate::IndexEntries;
@@ -11,17 +11,23 @@ pub struct SSTableBuilder {
     current_block: Vec<u8>,
     index_entries: IndexEntries,
     bloom: BloomFilter,
+    block_size: usize,
     current_offset: u64,
     entry_count: usize,
     last_key: Vec<u8>,
 }
 
 impl SSTableBuilder {
-    pub fn new(path: &Path, expected_entries: usize) -> Result<Self> {
+    pub fn new(
+        path: &Path,
+        expected_entries: usize,
+        block_size: usize,
+        bloom_fp_rate: f64,
+    ) -> Result<Self> {
         let file = File::create(path)?;
         let current_block = Vec::new();
         let index_entries = Vec::new();
-        let bloom = BloomFilter::new(expected_entries, 0.01);
+        let bloom = BloomFilter::new(expected_entries, bloom_fp_rate);
         let current_offset = 0;
         let entry_count = 0;
         let last_key = Vec::new();
@@ -31,6 +37,7 @@ impl SSTableBuilder {
             current_block,
             index_entries,
             bloom,
+            block_size,
             current_offset,
             entry_count,
             last_key,
@@ -56,7 +63,7 @@ impl SSTableBuilder {
         }
         self.entry_count += 1;
 
-        if self.current_block.len() >= BLOCK_SIZE {
+        if self.current_block.len() >= self.block_size {
             let block_start = self.current_offset;
             self.file.write_all(&self.current_block)?;
             self.index_entries.push((key.to_vec(), block_start));
